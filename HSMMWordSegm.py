@@ -138,12 +138,19 @@ class HSMMWordSegm():
         words = []
         classes = []
 
+        c = -1
         while True:
 
-            if use_max_path:
-                idx = numpy.argmax( a[t].reshape( self.MAX_LEN*self.num_class ) )
+            # 状態cへ遷移する確率
+            if c==-1:
+                trans = numpy.ones( self.num_class )
             else:
-                idx = self.sample_idx( a[t].reshape( self.MAX_LEN*self.num_class ))
+                trans = self.trans_prob[:,c]
+
+            if use_max_path:
+                idx = numpy.argmax( (a[t]*trans).reshape( self.MAX_LEN*self.num_class ) )
+            else:
+                idx = self.sample_idx( (a[t]*trans).reshape( self.MAX_LEN*self.num_class ) )
 
 
             k = int(idx/self.num_class)
