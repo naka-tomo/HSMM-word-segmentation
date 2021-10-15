@@ -1,5 +1,5 @@
 # encoding: utf8
-#from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 import numpy
 import random
 import math
@@ -71,8 +71,8 @@ class HSMMWordSegm():
 
         for words in self.segm_sentences:
             for w in words:
-                print w,
-            print
+                print( w, end=" " )
+            print()
 
 
     def calc_output_prob(self, c , w ):
@@ -180,7 +180,7 @@ class HSMMWordSegm():
                 # BOS
                 c = self.word_class[ id(words[0]) ]
                 self.trans_prob_bos[c] += 1
-            except KeyError,e:
+            except KeyError as e:
                 # gibss samplingで除かれているものは無視
                 continue
 
@@ -201,25 +201,31 @@ class HSMMWordSegm():
 
 
     def print_result(self):
-        print "-------------------------------"
+        print( "-------------------------------" )
         for words in self.segm_sentences:
             for w in words:
-                print w,"|",
-            print
+                print( w, end="|" )
+            print()
 
         num_voca = 0
         for c in range(self.num_class):
             num_voca += len(self.word_count[c])
 
-        print num_voca
+        print( num_voca )
 
     def delete_words(self):
         self.num_vocab = numpy.zeros( self.num_class )
         for c in range(self.num_class):
+            # 頻度が0回のものを削除
+            self.word_count[c] = { w: num for w, num in self.word_count[c].items() if num!=0 }
+            self.num_vocab[c] = len(self.word_count)
+
+            """
             for w,num in self.word_count[c].items():
                 self.num_vocab[c] += 1
                 if num==0:
                     self.word_count[c].pop( w )
+            """
 
 
 
@@ -294,9 +300,9 @@ def main():
     segm.print_result()
 
     for it in range(100):
-        print it
+        print( it )
         segm.learn()
-        print segm.num_vocab
+        print( segm.num_vocab )
 
     segm.learn( True )
     segm.save_result("result")
