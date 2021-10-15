@@ -32,7 +32,7 @@ class HSMMWordSegm():
         self.sentences = [ line.replace("\n","").replace("\r", "") for line in codecs.open( filename, "r" , "sjis" ).readlines()]
         self.prob_char = {}
 
-        for sentence in self.sentences:
+        for n, sentence in enumerate(self.sentences):
             words = []
 
             i = 0
@@ -52,7 +52,7 @@ class HSMMWordSegm():
             # ランダムに割り振る
             for i,w in enumerate(words):
                 c = random.randint(0,self.num_class-1)
-                self.word_class[id(w)] = c
+                self.word_class[(n,i)] = c
                 self.word_count[c][w] = self.word_count[c].get( w , 0 ) + 1
                 self.num_words[c] += 1
 
@@ -178,20 +178,20 @@ class HSMMWordSegm():
         for n,words in enumerate(self.segm_sentences):
             try:
                 # BOS
-                c = self.word_class[ id(words[0]) ]
+                c = self.word_class[ (n, 0) ]
                 self.trans_prob_bos[c] += 1
             except KeyError as e:
                 # gibss samplingで除かれているものは無視
                 continue
 
             for i in range(1,len(words)):
-                cc = self.word_class[ id(words[i-1]) ]
-                c = self.word_class[ id(words[i]) ]
+                cc = self.word_class[ (n, i-1) ]
+                c = self.word_class[ (n, i) ]
 
                 self.trans_prob[cc,c] += 1.0
 
             # EOS
-            c = self.word_class[ id(words[-1]) ]
+            c = self.word_class[ (n, len(words)-1) ]
             self.trans_prob_eos[c] += 1
 
         # 正規化
@@ -220,24 +220,15 @@ class HSMMWordSegm():
             self.word_count[c] = { w: num for w, num in self.word_count[c].items() if num!=0 }
             self.num_vocab[c] = len(self.word_count)
 
-            """
-            for w,num in self.word_count[c].items():
-                self.num_vocab[c] += 1
-                if num==0:
-                    self.word_count[c].pop( w )
-            """
-
-
-
     def learn(self,use_max_path=False):
-        for i in range(len(self.sentences)):
-            sentence = self.sentences[i]
-            words = self.segm_sentences[i]
+        for n in range(len(self.sentences)):
+            sentence = self.sentences[n]
+            words = self.segm_sentences[n]
 
             # 学習データから削除
-            for w in words:
-                c = self.word_class[id(w)]
-                self.word_class.pop( id(w) )
+            for i, w in enumerate(words):
+                c = self.word_class[(n,i)]
+                self.word_class.pop( (n,i) )
                 self.word_count[c][w] -= 1
                 self.num_words[c] -= 1
 
@@ -253,9 +244,11 @@ class HSMMWordSegm():
             words, classes = self.backward_sampling( a, sentence, use_max_path )
 
             # パラメータ更新
-            self.segm_sentences[i] = words
-            for w,c in zip( words, classes ):
-                self.word_class[id(w)] = c
+            self.segm_sentences[n] = words
+            for i in range(len(words)):
+                w = words[i]
+                c = classes[i]
+                self.word_class[(n,i)] = c
                 self.word_count[c][w] = self.word_count[c].get( w , 0 ) + 1
                 self.num_words[c] += 1
 
